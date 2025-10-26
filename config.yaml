@@ -1,0 +1,31 @@
+# API 키 관리
+api_keys:
+  - key: "your-api-key-1"
+    name: "User 1"
+  - key: "your-api-key-2"
+    name: "User 2"
+
+# Rate Limiting 설정
+rate_limit:
+  requests_per_minute: 5
+  requests_per_second: 5
+
+# 토큰 제한 설정
+token_limits:
+  max_tokens_per_request: 2000
+  max_tokens_per_day: 10000
+
+# OpenAI 설정
+openai:
+  model: "gpt-3.5-turbo"
+  temperature: 0.7
+  timeout: 30  # 초
+
+# 로깅 설정
+logging:
+  level: "INFO"
+  file_path: "logs/app.log"
+  max_file_size_mb: 10
+  backup_count: 5
+  log_request_body: true
+  max_message_length: 500  # 로그에 기록할 메시지 최대 길이

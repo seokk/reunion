@@ -11,8 +11,7 @@ class LLMService:
 
     def __init__(self):
         self.client = OpenAI(
-            api_key=openai_api_key,
-            timeout=config.openai.timeout
+            api_key=openai_api_key
         )
 
     async def chat_completion(self, message: str, max_tokens: int = None) -> tuple[str, int]:

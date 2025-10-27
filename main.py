@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Depends, Request, HTTPException, status
 from fastapi.responses import StreamingResponse, JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 from datetime import datetime
 import json
 from app.models import ChatRequest, ChatResponse, ErrorResponse
@@ -14,6 +15,15 @@ app = FastAPI(
     title="LLM Service API",
     description="FastAPI 기반 ChatGPT 서비스",
     version="1.0.0"
+)
+
+# CORS 설정 추가
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # 모든 오리진 허용 (프로덕션에서는 특정 도메인만 허용 권장)
+    allow_credentials=True,
+    allow_methods=["*"],  # 모든 HTTP 메서드 허용
+    allow_headers=["*"],  # 모든 헤더 허용
 )
 
 

@@ -4,6 +4,7 @@ from typing import AsyncGenerator
 import asyncio
 from app.config import config, openai_api_key
 from app.logging_config import logger, truncate_message
+from app.prompts import REUNION_CONSULTATION_SYSTEM_PROMPT
 
 
 class LLMService:
@@ -40,7 +41,10 @@ class LLMService:
                 None,
                 lambda: self.client.chat.completions.create(
                     model=config.openai.model,
-                    messages=[{"role": "user", "content": message}],
+                    messages=[
+                        {"role": "system", "content": REUNION_CONSULTATION_SYSTEM_PROMPT},
+                        {"role": "user", "content": message}
+                    ],
                     max_tokens=max_tokens,
                     temperature=config.openai.temperature
                 )
@@ -105,7 +109,10 @@ class LLMService:
             # OpenAI API 스트리밍 호출
             stream = self.client.chat.completions.create(
                 model=config.openai.model,
-                messages=[{"role": "user", "content": message}],
+                messages=[
+                    {"role": "system", "content": REUNION_CONSULTATION_SYSTEM_PROMPT},
+                    {"role": "user", "content": message}
+                ],
                 max_tokens=max_tokens,
                 temperature=config.openai.temperature,
                 stream=True

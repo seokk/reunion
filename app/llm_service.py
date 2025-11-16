@@ -2,9 +2,11 @@ from openai import OpenAI, OpenAIError
 from fastapi import HTTPException, status
 from typing import AsyncGenerator
 import asyncio
+import json
 from app.config import config, openai_api_key
 from app.logging_config import logger, truncate_message
 from app.prompts import REUNION_CONSULTATION_SYSTEM_PROMPT
+from app.schemas import REUNION_ANALYSIS_SCHEMA
 
 
 class LLMService:
@@ -15,16 +17,17 @@ class LLMService:
             api_key=openai_api_key
         )
 
-    async def chat_completion(self, message: str, max_tokens: int = None) -> tuple[str, int]:
+    async def chat_completion(self, message: str, max_tokens: int = None, use_structured_output: bool = True) -> tuple[str, int]:
         """
         일반 채팅 완성 (한 번에 전체 응답)
 
         Args:
             message: 사용자 질의
             max_tokens: 최대 토큰 수 (None이면 config 기본값 사용)
+            use_structured_output: Structured Output 사용 여부 (기본 True)
 
         Returns:
-            tuple[응답 텍스트, 사용된 토큰 수]
+            tuple[응답 텍스트 (JSON 문자열 or 일반 텍스트), 사용된 토큰 수]
 
         Raises:
             HTTPException: OpenAI API 에러 시
@@ -33,26 +36,52 @@ class LLMService:
             max_tokens = config.token_limits.max_tokens_per_request
 
         try:
-            logger.info(f"Requesting chat completion - Message: {truncate_message(message)}, Max tokens: {max_tokens}")
+            logger.info(f"Requesting chat completion - Message: {truncate_message(message)}, Max tokens: {max_tokens}, Structured: {use_structured_output}")
+
+            # API 호출 파라미터 구성
+            api_params = {
+                "model": config.openai.model,
+                "messages": [
+                    {"role": "system", "content": REUNION_CONSULTATION_SYSTEM_PROMPT},
+                    {"role": "user", "content": message}
+                ],
+                "max_tokens": max_tokens,
+                "temperature": config.openai.temperature
+            }
+
+            # Structured Output 사용 시 response_format 추가
+            if use_structured_output:
+                api_params["response_format"] = {
+                    "type": "json_schema",
+                    "json_schema": {
+                        "name": "reunion_analysis",
+                        "schema": REUNION_ANALYSIS_SCHEMA,
+                        "strict": True
+                    }
+                }
 
             # OpenAI API 호출 (동기)
             loop = asyncio.get_event_loop()
             response = await loop.run_in_executor(
                 None,
-                lambda: self.client.chat.completions.create(
-                    model=config.openai.model,
-                    messages=[
-                        {"role": "system", "content": REUNION_CONSULTATION_SYSTEM_PROMPT},
-                        {"role": "user", "content": message}
-                    ],
-                    max_tokens=max_tokens,
-                    temperature=config.openai.temperature
-                )
+                lambda: self.client.chat.completions.create(**api_params)
             )
 
             # 응답 추출
             response_text = response.choices[0].message.content
             tokens_used = response.usage.total_tokens
+
+            # Structured Output인 경우 JSON 유효성 검증
+            if use_structured_output:
+                try:
+                    json.loads(response_text)  # JSON 파싱 테스트
+                    logger.info(f"Structured output validated successfully")
+                except json.JSONDecodeError as e:
+                    logger.error(f"Invalid JSON in structured output: {str(e)}")
+                    raise HTTPException(
+                        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                        detail="Invalid JSON structure in LLM response"
+                    )
 
             logger.info(
                 f"Chat completion successful - "

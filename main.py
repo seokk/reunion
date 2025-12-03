@@ -34,7 +34,7 @@ async def root():
 
 
 @app.post(
-    "/api/v1/chat",
+    "/api/v1/chat/",
     response_model=ChatResponse,
     responses={
         401: {"model": ErrorResponse, "description": "Unauthorized"},
@@ -118,7 +118,7 @@ async def chat(
 
 
 @app.post(
-    "/api/v1/chat/stream",
+    "/api/v1/chat/stream/",
     responses={
         200: {"description": "Server-Sent Events stream"},
         401: {"model": ErrorResponse, "description": "Unauthorized"},

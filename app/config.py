@@ -46,9 +46,12 @@ class Config(BaseModel):
     logging: LoggingConfig
 
 
-def load_config(config_path: str = "config.yaml") -> Config:
-    """YAML 설정 파일 로드"""
-    with open(config_path, 'r', encoding='utf-8') as f:
+def load_config():
+    base_dir = os.path.dirname(os.path.abspath(__file__))  # /app/app
+    root_dir = os.path.abspath(os.path.join(base_dir, ".."))  # /app
+    config_path = os.path.join(root_dir, "config.yaml")
+
+    with open(config_path, "r", encoding="utf-8") as f:
         config_dict = yaml.safe_load(f)
     return Config(**config_dict)
 

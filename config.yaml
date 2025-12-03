@@ -17,7 +17,7 @@ token_limits:
 
 # OpenAI 설정
 openai:
-  model: "gpt-4o-2024-08-06"  # Structured Output 지원을 위해 업그레이드
+  model: "gpt-4o"  # Structured Output 지원을 위해 업그레이드
   temperature: 0.7
   timeout: 60  # 초 (gpt-4o는 응답이 더 길 수 있음)
 

@@ -19,4 +19,5 @@ RUN mkdir -p logs
 EXPOSE 8080
 
 # main.py를 직접 실행하여 PORT 환경 변수를 동적으로 읽도록 합니다.
-CMD ["python", "main.py"]
+#CMD ["python", "main.py"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080", "--proxy-headers"]

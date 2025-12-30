@@ -77,7 +77,7 @@ async def chat(
         logger.info(
             f"Chat request - User: {user_name}, API Key: {mask_api_key(api_key)}, "
             f"IP: {request.client.host if request.client else 'unknown'}, "
-            f"Message: {truncate_message(chat_request.message).replace('\n', ' ') if config.logging.log_request_body else '[redacted]'}"
+            f"Message: {truncate_message(chat_request.message).replace('\\n', ' ') if config.logging.log_request_body else '[redacted]'}"
         )
 
         # LLM 호출
@@ -253,7 +253,7 @@ async def general_exception_handler(request: Request, exc: Exception):
 
 
 if __name__ == "__main__":
-    # docker-compose.yml에서 사용하는 포트와 일치시키기 위해 기본 포트를 8000으로 변경
+    # docker-compose.yml에서 사용하는 포트와 일치시키기 위해 기본 포트를 8080으로 변경
     port = int(os.getenv("PORT", 8080))
     host = os.getenv("HOST", "0.0.0.0")
 

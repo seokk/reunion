@@ -2,15 +2,15 @@ from fastapi import FastAPI, Depends, Request, HTTPException, status
 from fastapi.responses import StreamingResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from datetime import datetime
+import json
+import uvicorn
+import os
 from app.models import ChatRequest, ChatResponse, ErrorResponse
 from app.auth import verify_api_key, get_api_key_name
 from app.rate_limiter import rate_limiter
 from app.llm_service import llm_service
 from app.logging_config import logger, mask_api_key, truncate_message
 from app.config import config
-import json
-import uvicorn
-import os
 
 # FastAPI 애플리케이션 생성
 app = FastAPI(
@@ -32,6 +32,7 @@ app.add_middleware(
 @app.get("/")
 async def root():
     """헬스 체크 엔드포인트"""
+    logger.info("Health check endpoint was called.")
     return {"status": "healthy", "service": "LLM Service API"}
 
 
@@ -73,22 +74,20 @@ async def chat(
 
         # 토큰 제한 체크
         rate_limiter.check_token_limit(api_key, max_tokens)
-        
-        log_message = json.dumps(
-            truncate_message(chat_request.message),
-            ensure_ascii=False
-        )
 
-        logger.info(
-            f"Chat request - User: {user_name}, API Key: {mask_api_key(api_key)}, "
-            f"IP: {request.client.host if request.client else 'unknown'}, "
-            f"Message: {log_message}"
-        )
+        logger.info("Chat request received", extra={
+            "user": user_name,
+            "api_key": mask_api_key(api_key),
+            "ip": request.client.host if request.client else 'unknown',
+            "request_body": {
+                "message": (truncate_message(chat_request.message) if config.logging.log_request_body else '[redacted]'),
+                "max_tokens": max_tokens
+            }
+        })
 
         # LLM 호출
         response_text, tokens_used = await llm_service.chat_completion(
-            message=chat_request.message,
-            max_tokens=max_tokens
+            message=chat_request.message, max_tokens=max_tokens
         )
 
         # 토큰 사용량 업데이트
@@ -97,11 +96,15 @@ async def chat(
         # 응답 시간 계산
         elapsed_time = (datetime.now() - start_time).total_seconds()
 
-        logger.info(
-            f"Chat response - User: {user_name}, API Key: {mask_api_key(api_key)}, "
-            f"Tokens used: {tokens_used}, Remaining: {tokens_remaining}, "
-            f"Response time: {elapsed_time:.2f}s"
-        )
+        logger.info("Chat response sent", extra={
+            "user": user_name,
+            "api_key": mask_api_key(api_key),
+            "performance": {
+                "tokens_used": tokens_used,
+                "tokens_remaining_today": tokens_remaining,
+                "response_time_seconds": f"{elapsed_time:.2f}"
+            }
+        })
 
         return ChatResponse(
             response=response_text,
@@ -114,10 +117,10 @@ async def chat(
         raise
 
     except Exception as e:
-        logger.error(
-            f"Unexpected error in chat endpoint - User: {user_name}, "
-            f"API Key: {mask_api_key(api_key)}, Error: {str(e)}"
-        )
+        logger.error("Unexpected error in chat endpoint", exc_info=True, extra={
+            "user": user_name,
+            "api_key": mask_api_key(api_key)
+        })
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Internal server error: {str(e)}"
@@ -163,24 +166,22 @@ async def chat_stream(
         # 토큰 제한 체크
         rate_limiter.check_token_limit(api_key, max_tokens)
 
-        log_message = json.dumps(
-            truncate_message(chat_request.message),
-            ensure_ascii=False
-        )
-
-        logger.info(
-            f"Chat request - User: {user_name}, API Key: {mask_api_key(api_key)}, "
-            f"IP: {request.client.host if request.client else 'unknown'}, "
-            f"Message: {log_message}"
-        )
+        logger.info("Stream request received", extra={
+            "user": user_name,
+            "api_key": mask_api_key(api_key),
+            "ip": request.client.host if request.client else 'unknown',
+            "request_body": {
+                "message": (truncate_message(chat_request.message) if config.logging.log_request_body else '[redacted]'),
+                "max_tokens": max_tokens
+            }
+        })
 
         async def generate_stream():
             """SSE 스트림 생성"""
             try:
                 total_tokens = 0
                 async for chunk, done, tokens in llm_service.chat_completion_stream(
-                    message=chat_request.message,
-                    max_tokens=max_tokens
+                    message=chat_request.message, max_tokens=max_tokens
                 ):
                     if done:
                         # 스트림 완료
@@ -190,8 +191,7 @@ async def chat_stream(
 
                         # 완료 메시지
                         data = {
-                            "chunk": "",
-                            "done": True,
+                            "chunk": "", "done": True,
                             "tokens_used": total_tokens,
                             "tokens_remaining_today": tokens_remaining
                         }
@@ -199,44 +199,39 @@ async def chat_stream(
 
                         # 로그 기록
                         elapsed_time = (datetime.now() - start_time).total_seconds()
-                        logger.info(
-                            f"Stream completed - User: {user_name}, API Key: {mask_api_key(api_key)}, "
-                            f"Tokens used: {total_tokens}, Remaining: {tokens_remaining}, "
-                            f"Response time: {elapsed_time:.2f}s"
-                        )
+                        logger.info("Stream completed", extra={
+                            "user": user_name,
+                            "api_key": mask_api_key(api_key),
+                            "performance": {
+                                "tokens_used": total_tokens,
+                                "tokens_remaining_today": tokens_remaining,
+                                "response_time_seconds": f"{elapsed_time:.2f}"
+                            }
+                        })
                     else:
                         # 청크 전송
-                        data = {
-                            "chunk": chunk,
-                            "done": False
-                        }
+                        data = {"chunk": chunk, "done": False}
                         yield f"data: {json.dumps(data)}\n\n"
 
             except Exception as e:
-                logger.error(
-                    f"Error during streaming - User: {user_name}, "
-                    f"API Key: {mask_api_key(api_key)}, Error: {str(e)}"
-                )
-                error_data = {
-                    "error": str(e),
-                    "done": True
-                }
+                logger.error("Error during streaming generation", exc_info=True, extra={
+                    "user": user_name,
+                    "api_key": mask_api_key(api_key)
+                })
+                error_data = {"error": "An error occurred during the stream.", "done": True}
                 yield f"data: {json.dumps(error_data)}\n\n"
 
-        return StreamingResponse(
-            generate_stream(),
-            media_type="text/event-stream"
-        )
+        return StreamingResponse(generate_stream(), media_type="text/event-stream")
 
     except HTTPException:
         # 이미 처리된 HTTP 예외는 다시 발생
         raise
 
     except Exception as e:
-        logger.error(
-            f"Unexpected error in stream endpoint - User: {user_name}, "
-            f"API Key: {mask_api_key(api_key)}, Error: {str(e)}"
-        )
+        logger.error("Unexpected error in stream endpoint", exc_info=True, extra={
+            "user": user_name,
+            "api_key": mask_api_key(api_key)
+        })
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Internal server error: {str(e)}"
@@ -246,6 +241,11 @@ async def chat_stream(
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request: Request, exc: HTTPException):
     """HTTP 예외 핸들러"""
+    logger.warning(f"HTTP Exception: {exc.status_code} {exc.detail}", extra={
+        "status_code": exc.status_code,
+        "detail": exc.detail,
+        "path": request.url.path
+    })
     return JSONResponse(
         status_code=exc.status_code,
         content={"error": exc.detail}
@@ -255,7 +255,9 @@ async def http_exception_handler(request: Request, exc: HTTPException):
 @app.exception_handler(Exception)
 async def general_exception_handler(request: Request, exc: Exception):
     """일반 예외 핸들러"""
-    logger.error(f"Unhandled exception: {str(exc)}")
+    logger.error("Unhandled exception caught by general handler", exc_info=True, extra={
+        "path": request.url.path
+    })
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         content={"error": "Internal server error", "detail": str(exc)}

@@ -2,13 +2,13 @@ from fastapi import FastAPI, Depends, Request, HTTPException, status
 from fastapi.responses import StreamingResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from datetime import datetime
-import json
 from app.models import ChatRequest, ChatResponse, ErrorResponse
 from app.auth import verify_api_key, get_api_key_name
 from app.rate_limiter import rate_limiter
 from app.llm_service import llm_service
 from app.logging_config import logger, mask_api_key, truncate_message
 from app.config import config
+import json
 import uvicorn
 import os
 
@@ -74,12 +74,9 @@ async def chat(
         # 토큰 제한 체크
         rate_limiter.check_token_limit(api_key, max_tokens)
         
-        # 올바른 줄바꿈 문자 교체: '\n' -> '
-        log_message = (
-            truncate_message(chat_request.message)
-            .replace('\n', ' ')
-            .replace('\r', ' ')
-            if config.logging.log_request_body else '[redacted]'
+        log_message = json.dumps(
+            truncate_message(chat_request.message),
+            ensure_ascii=False
         )
 
         logger.info(
@@ -166,15 +163,13 @@ async def chat_stream(
         # 토큰 제한 체크
         rate_limiter.check_token_limit(api_key, max_tokens)
 
-        log_message = (
-            truncate_message(chat_request.message)
-            .replace('\n', ' ')
-            .replace('\r', ' ')
-            if config.logging.log_request_body else '[redacted]'
+        log_message = json.dumps(
+            truncate_message(chat_request.message),
+            ensure_ascii=False
         )
-        
+
         logger.info(
-            f"Stream request - User: {user_name}, API Key: {mask_api_key(api_key)}, "
+            f"Chat request - User: {user_name}, API Key: {mask_api_key(api_key)}, "
             f"IP: {request.client.host if request.client else 'unknown'}, "
             f"Message: {log_message}"
         )

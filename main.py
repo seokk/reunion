@@ -73,11 +73,15 @@ async def chat(
 
         # 토큰 제한 체크
         rate_limiter.check_token_limit(api_key, max_tokens)
+        
+        # SyntaxError 수정을 위해 f-string 밖에서 메시지 가공
+        log_message = (truncate_message(chat_request.message).replace('\n', ' ')
+                       if config.logging.log_request_body else '[redacted]')
 
         logger.info(
             f"Chat request - User: {user_name}, API Key: {mask_api_key(api_key)}, "
             f"IP: {request.client.host if request.client else 'unknown'}, "
-            f"Message: {truncate_message(chat_request.message).replace('\\n', ' ') if config.logging.log_request_body else '[redacted]'}"
+            f"Message: {log_message}"
         )
 
         # LLM 호출
@@ -158,10 +162,14 @@ async def chat_stream(
         # 토큰 제한 체크
         rate_limiter.check_token_limit(api_key, max_tokens)
 
+        # SyntaxError 수정을 위해 f-string 밖에서 메시지 가공
+        log_message = (truncate_message(chat_request.message).replace('\n', ' ')
+                       if config.logging.log_request_body else '[redacted]')
+        
         logger.info(
             f"Stream request - User: {user_name}, API Key: {mask_api_key(api_key)}, "
             f"IP: {request.client.host if request.client else 'unknown'}, "
-            f"Message: {truncate_message(chat_request.message).replace('\n', ' ') if config.logging.log_request_body else '[redacted]'}"
+            f"Message: {log_message}"
         )
 
         async def generate_stream():

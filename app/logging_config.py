@@ -4,19 +4,6 @@ from logging.handlers import RotatingFileHandler
 from pythonjsonlogger import jsonlogger
 from app.config import config
 
-# JsonFormatter에서 사용할 커스텀 포맷
-# asctime: 로그 기록 시간
-# name: 로거 이름
-# levelname: 로그 레벨 (e.g., INFO, ERROR)
-# message: 기본 로그 메시지
-class CustomJsonFormatter(jsonlogger.JsonFormatter):
-    def add_fields(self, log_record, record, message_dict):
-        super(CustomJsonFormatter, self).add_fields(log_record, record, message_dict)
-        if not log_record.get('timestamp'):
-            log_record['timestamp'] = record.asctime
-        if not log_record.get('level'):
-            log_record['level'] = record.levelname
-
 def setup_logging():
     """로깅 설정"""
     # logs 디렉토리 생성
@@ -49,21 +36,24 @@ def setup_logging():
 
     # --- 콘솔 핸들러 (JsonFormatter 사용) ---
     console_handler = logging.StreamHandler()
+
     # JSON 포매터 설정
     # Cloud Run의 구조화된 로깅과 호환되도록 필드명을 맞춥니다.
     # https://cloud.google.com/run/docs/logging#structured-json
-    json_formatter = CustomJsonFormatter(
-        '%(message)s', 
-        rename_fields={'levelname': 'severity'}
+    # 포맷 문자열에 필요한 필드를 명시하고, rename_fields를 통해 이름을 변경합니다.
+    formatter_string = '%(asctime)s %(levelname)s %(message)s'
+    json_formatter = jsonlogger.JsonFormatter(
+        formatter_string,
+        rename_fields={'levelname': 'severity', 'asctime': 'timestamp'}
     )
-    
+
     console_handler.setFormatter(json_formatter)
     logger.addHandler(console_handler)
-    
-    # --- uvicorn 액세스 로그도 동일한 포맷을 사용하도록 설정 ---
-    # uvicorn_access_logger = logging.getLogger("uvicorn.access")
-    # uvicorn_access_logger.handlers = logger.handlers
-    # uvicorn_access_logger.setLevel(logger.level)
+
+    # uvicorn 액세스 로그도 동일한 포맷을 사용하도록 설정
+    uvicorn_access_logger = logging.getLogger("uvicorn.access")
+    uvicorn_access_logger.handlers = logger.handlers
+    uvicorn_access_logger.setLevel(logger.level)
 
     return logger
 

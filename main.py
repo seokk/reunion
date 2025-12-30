@@ -74,9 +74,13 @@ async def chat(
         # 토큰 제한 체크
         rate_limiter.check_token_limit(api_key, max_tokens)
         
-        # SyntaxError 수정을 위해 f-string 밖에서 메시지 가공
-        log_message = (truncate_message(chat_request.message).replace('\\n', ' ')
-                       if config.logging.log_request_body else '[redacted]')
+        # 올바른 줄바꿈 문자 교체: '\n' -> '
+        log_message = (
+            truncate_message(chat_request.message)
+            .replace('\n', ' ')
+            .replace('\r', ' ')
+            if config.logging.log_request_body else '[redacted]'
+        )
 
         logger.info(
             f"Chat request - User: {user_name}, API Key: {mask_api_key(api_key)}, "
@@ -162,9 +166,12 @@ async def chat_stream(
         # 토큰 제한 체크
         rate_limiter.check_token_limit(api_key, max_tokens)
 
-        # SyntaxError 수정을 위해 f-string 밖에서 메시지 가공
-        log_message = (truncate_message(chat_request.message).replace('\n', ' ')
-                       if config.logging.log_request_body else '[redacted]')
+        log_message = (
+            truncate_message(chat_request.message)
+            .replace('\n', ' ')
+            .replace('\r', ' ')
+            if config.logging.log_request_body else '[redacted]'
+        )
         
         logger.info(
             f"Stream request - User: {user_name}, API Key: {mask_api_key(api_key)}, "
@@ -259,7 +266,7 @@ async def general_exception_handler(request: Request, exc: Exception):
         content={"error": "Internal server error", "detail": str(exc)}
     )
 
-## 실배포는 Dockerfile. local 테스트 시 아래 활용
+
 if __name__ == "__main__":
     # docker-compose.yml에서 사용하는 포트와 일치시키기 위해 기본 포트를 8080으로 변경
     port = int(os.getenv("PORT", 8080))

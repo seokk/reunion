@@ -14,7 +14,9 @@ COPY . .
 
 RUN mkdir -p logs
 
+# EXPOSE는 문서화 목적으로 남겨둘 수 있지만, Cloud Run에서는 무시됩니다.
+# Cloud Run은 PORT 환경 변수로 지정된 포트를 사용합니다.
 EXPOSE 8080
 
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080", "--proxy-headers"]
-
+# main.py를 직접 실행하여 PORT 환경 변수를 동적으로 읽도록 합니다.
+CMD ["python", "main.py"]

@@ -9,6 +9,8 @@ from app.rate_limiter import rate_limiter
 from app.llm_service import llm_service
 from app.logging_config import logger, mask_api_key, truncate_message
 from app.config import config
+import uvicorn
+import os
 
 # FastAPI 애플리케이션 생성
 app = FastAPI(
@@ -251,10 +253,9 @@ async def general_exception_handler(request: Request, exc: Exception):
 
 
 if __name__ == "__main__":
-    import uvicorn
-    import os
-
+    # docker-compose.yml에서 사용하는 포트와 일치시키기 위해 기본 포트를 8000으로 변경
     port = int(os.getenv("PORT", 8080))
     host = os.getenv("HOST", "0.0.0.0")
 
-    uvicorn.run(app, host=host, port=port)
+    # Cloud Run과 같은 역방향 프록시 뒤에서 실행할 때 필요
+    uvicorn.run(app, host=host, port=port, proxy_headers=True)

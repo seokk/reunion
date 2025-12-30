@@ -75,7 +75,7 @@ async def chat(
         logger.info(
             f"Chat request - User: {user_name}, API Key: {mask_api_key(api_key)}, "
             f"IP: {request.client.host if request.client else 'unknown'}, "
-            f"Message: {truncate_message(chat_request.message) if config.logging.log_request_body else '[redacted]'}"
+            f"Message: {truncate_message(chat_request.message).replace('\n', ' ') if config.logging.log_request_body else '[redacted]'}"
         )
 
         # LLM 호출
@@ -159,7 +159,7 @@ async def chat_stream(
         logger.info(
             f"Stream request - User: {user_name}, API Key: {mask_api_key(api_key)}, "
             f"IP: {request.client.host if request.client else 'unknown'}, "
-            f"Message: {truncate_message(chat_request.message) if config.logging.log_request_body else '[redacted]'}"
+            f"Message: {truncate_message(chat_request.message).replace('\n', ' ') if config.logging.log_request_body else '[redacted]'}"
         )
 
         async def generate_stream():

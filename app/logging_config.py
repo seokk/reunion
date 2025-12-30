@@ -61,9 +61,9 @@ def setup_logging():
     logger.addHandler(console_handler)
     
     # --- uvicorn 액세스 로그도 동일한 포맷을 사용하도록 설정 ---
-    uvicorn_access_logger = logging.getLogger("uvicorn.access")
-    uvicorn_access_logger.handlers = logger.handlers
-    uvicorn_access_logger.setLevel(logger.level)
+    # uvicorn_access_logger = logging.getLogger("uvicorn.access")
+    # uvicorn_access_logger.handlers = logger.handlers
+    # uvicorn_access_logger.setLevel(logger.level)
 
     return logger
 

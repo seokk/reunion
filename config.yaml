@@ -1,7 +1,7 @@
 # API 키 관리
 api_keys:
-  - key: "your-api-key-1"
-    name: "User 1"
+  - key: "QkFTRTY0X0RBTkdfUkFORE9NX0tFWTIwMjUxMjMw"
+    name: "f_reunion"
   - key: "your-api-key-2"
     name: "User 2"
 

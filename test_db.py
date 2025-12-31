@@ -11,13 +11,15 @@ async def test_prompt_retrieval():
 
     try:
         test_prompt_name = 'REUNION_CONSULTATION_SYSTEM_PROMPT'
-        logger.info(f"테스트 대상 프롬프트 이름: '{test_prompt_name}'")
+        test_prompt_name2 = 'REUNION_ANALYSIS_SCHEMA'
+        logger.info(f"테스트 대상 프롬프트 이름: '{test_prompt_name2}'")
 
         # 비동기 함수 호출
-        content = await prompt_db.get_active_prompt_by_name(test_prompt_name)
+        content = await prompt_db.get_active_prompt_by_name(test_prompt_name2)
 
         if content:
             logger.info(f">>> 조회 성공: 프롬프트 내용을 성공적으로 가져왔습니다.")
+            logger.info(f"content: {content}")
         else:
             logger.warning(f">>> 조회 실패: 활성화된 프롬프트를 찾을 수 없습니다 (결과는 None입니다).")
             logger.warning("확인 사항: 'prompt_types' 테이블에 해당 이름의 데이터가 있고, ")

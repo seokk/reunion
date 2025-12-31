@@ -4,13 +4,10 @@
 REUNION_ANALYSIS_SCHEMA = {
     "type": "object",
     "properties": {
-        # 1. 전체 재회 확률 (1-100)
         "overall_probability": {
             "type": "number",
             "description": "전체 재회 가능 확률 (1-100)"
         },
-
-        # 2. 요인별 분석
         "factor_analysis": {
             "type": "object",
             "properties": {
@@ -78,8 +75,6 @@ REUNION_ANALYSIS_SCHEMA = {
             "required": ["emotional", "psychological", "environmental", "other"],
             "additionalProperties": False
         },
-
-        # 3. 상대방 심리 추측
         "partner_psychology": {
             "type": "object",
             "properties": {
@@ -99,8 +94,6 @@ REUNION_ANALYSIS_SCHEMA = {
             "required": ["breakup_reason_analysis", "personality_analysis", "reunion_willingness"],
             "additionalProperties": False
         },
-
-        # 4. 재회 필요 요소
         "reunion_requirements": {
             "type": "object",
             "properties": {
@@ -133,8 +126,6 @@ REUNION_ANALYSIS_SCHEMA = {
             "required": ["solution", "contact_timing", "approach_stance", "contact_method", "considerations"],
             "additionalProperties": False
         },
-
-        # 5. 재회 후 관계 유지
         "relationship_maintenance": {
             "type": "object",
             "properties": {
@@ -167,8 +158,6 @@ REUNION_ANALYSIS_SCHEMA = {
             "required": ["introduction", "tips"],
             "additionalProperties": False
         },
-
-        # 6. 최종 조언
         "final_advice": {
             "type": "object",
             "properties": {

@@ -3,6 +3,7 @@ from fastapi import HTTPException, status
 from typing import AsyncGenerator, Dict, Any
 import asyncio
 import json
+import re # 정규표현식 모듈 추가
 from app.config import config, openai_api_key
 from app.logging_config import logger, truncate_message
 from app.database import prompt_db
@@ -31,10 +32,17 @@ class LLMService:
             raise ValueError("Failed to load required analysis schema from the database.")
         
         try:
-            self.analysis_schema = json.loads(analysis_schema_str)
+            # 1. DB에서 읽어온 문자열에서 주석을 제거합니다.
+            # 각 줄의 시작 부분에 있는 # 주석을 제거합니다.
+            cleaned_schema_str = re.sub(r"^\s*#.*$", "", analysis_schema_str, flags=re.MULTILINE)
+            
+            # 2. 주석이 제거된 문자열을 JSON으로 파싱합니다.
+            self.analysis_schema = json.loads(cleaned_schema_str)
             logger.info("Successfully loaded and parsed all required prompts and schemas.")
+
         except json.JSONDecodeError as e:
             logger.error(f"Fatal: Failed to parse analysis schema from DB. Error: {e}")
+            logger.debug(f"Cleaned schema string that failed to parse: {cleaned_schema_str}")
             raise ValueError("Invalid JSON format in the analysis schema from the database.")
 
     async def chat_completion(self, message: str, max_tokens: int = None, use_structured_output: bool = True) -> tuple[str, int]:

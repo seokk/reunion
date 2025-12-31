@@ -23,7 +23,7 @@ REUNION_ANALYSIS_SCHEMA = {
                         },
                         "analysis": {
                             "type": "string",
-                            "description": "감정적 요인에 대한 상세 분석. 200자 이내로 간결하게 작성."
+                            "description": "감정적 요인에 대한 상세 분석. 200자 내외로 작성."
                         }
                     },
                     "required": ["score", "analysis"],
@@ -38,7 +38,7 @@ REUNION_ANALYSIS_SCHEMA = {
                         },
                         "analysis": {
                             "type": "string",
-                            "description": "심리적 요인(성격, MBTI, 애착유형)에 대한 상세 분석. 200자 이내로 간결하게 작성."
+                            "description": "심리적 요인(성격, MBTI, 애착유형)에 대한 상세 분석. 200자 내외로 작성."
                         }
                     },
                     "required": ["score", "analysis"],
@@ -53,7 +53,7 @@ REUNION_ANALYSIS_SCHEMA = {
                         },
                         "analysis": {
                             "type": "string",
-                            "description": "환경적 요인(거리, 연락상태)에 대한 상세 분석. 200자 이내로 간결하게 작성."
+                            "description": "환경적 요인(거리, 연락상태)에 대한 상세 분석. 200자 내외로 작성."
                         }
                     },
                     "required": ["score", "analysis"],
@@ -68,7 +68,7 @@ REUNION_ANALYSIS_SCHEMA = {
                         },
                         "analysis": {
                             "type": "string",
-                            "description": "기타 요인(나이, 나이차이)에 대한 상세 분석. 150자 이내로 간결하게 작성."
+                            "description": "기타 요인(나이, 나이차이)에 대한 상세 분석. 300자 내외로 작성."
                         }
                     },
                     "required": ["score", "analysis"],
@@ -85,15 +85,15 @@ REUNION_ANALYSIS_SCHEMA = {
             "properties": {
                 "breakup_reason_analysis": {
                     "type": "string",
-                    "description": "이별 사유에 따른 상대방의 현재 상황 분석. 150자 이내."
+                    "description": "이별 사유에 따른 상대방의 현재 상황 분석. 350자 이내."
                 },
                 "personality_analysis": {
                     "type": "string",
-                    "description": "상대방의 성격 키워드에 따른 현재 심리 분석. 150자 이내."
+                    "description": "상대방의 성격 키워드에 따른 현재 심리 분석. 350자 이내."
                 },
                 "reunion_willingness": {
                     "type": "string",
-                    "description": "상대방이 현재 재회를 원하는 상태인지에 대한 추측. 150자 이내."
+                    "description": "상대방이 현재 재회를 원하는 상태인지에 대한 추측. 350자 이내."
                 }
             },
             "required": ["breakup_reason_analysis", "personality_analysis", "reunion_willingness"],
@@ -106,23 +106,23 @@ REUNION_ANALYSIS_SCHEMA = {
             "properties": {
                 "solution": {
                     "type": "string",
-                    "description": "재회를 위한 핵심 솔루션. 150자 이내."
+                    "description": "재회를 위한 핵심 솔루션. 300자 이내."
                 },
                 "contact_timing": {
                     "type": "string",
-                    "description": "연락하기 좋은 시점과 이유. 150자 이내."
+                    "description": "연락하기 좋은 시점과 이유. 300자 이내."
                 },
                 "approach_stance": {
                     "type": "string",
-                    "description": "어떤 스탠스를 취해야 하는지. 150자 이내."
+                    "description": "어떤 스탠스를 취해야 하는지. 300자 이내."
                 },
                 "contact_method": {
                     "type": "string",
-                    "description": "어떤 형태로 연락하는 게 좋을지. 150자 이내."
+                    "description": "어떤 형태로 연락하는 게 좋을지. 300자 이내."
                 },
                 "considerations": {
                     "type": "array",
-                    "description": "연락하기 전 고려해봐야 할 요소들. 각 항목은 50자 이내.",
+                    "description": "연락하기 전 고려해봐야 할 요소들. 각 항목은 100자 이내.",
                     "items": {
                         "type": "string"
                     },
@@ -140,7 +140,7 @@ REUNION_ANALYSIS_SCHEMA = {
             "properties": {
                 "introduction": {
                     "type": "string",
-                    "description": "관계 유지의 중요성에 대한 서론. 100자 이내."
+                    "description": "관계 유지의 중요성에 대한 서론. 200자 이내."
                 },
                 "tips": {
                     "type": "array",
@@ -154,7 +154,7 @@ REUNION_ANALYSIS_SCHEMA = {
                             },
                             "description": {
                                 "type": "string",
-                                "description": "팁에 대한 상세 설명. 100자 이내."
+                                "description": "팁에 대한 상세 설명. 200자 내외."
                             }
                         },
                         "required": ["title", "description"],
@@ -174,15 +174,15 @@ REUNION_ANALYSIS_SCHEMA = {
             "properties": {
                 "approach_method": {
                     "type": "string",
-                    "description": "어떤 접근 방식이 좋을지 (직접적/우회적/단계적 등). 150자 이내."
+                    "description": "어떤 접근 방식이 좋을지 (직접적/우회적/단계적 등). 300자 이내."
                 },
                 "emotion_expression": {
                     "type": "string",
-                    "description": "감정 표현은 어떻게 하는 게 좋을지. 150자 이내."
+                    "description": "감정 표현은 어떻게 하는 게 좋을지. 300자 이내."
                 },
                 "optimal_timing": {
                     "type": "string",
-                    "description": "어느 시점에 연락하는 게 좋을지 구체적인 조언. 150자 이내."
+                    "description": "어느 시점에 연락하는 게 좋을지 구체적인 조언. 300자 이내."
                 }
             },
             "required": ["approach_method", "emotion_expression", "optimal_timing"],

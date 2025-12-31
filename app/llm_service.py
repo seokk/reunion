@@ -1,12 +1,13 @@
 from openai import OpenAI, OpenAIError
 from fastapi import HTTPException, status
-from typing import AsyncGenerator
+from typing import AsyncGenerator, Dict, Any
 import asyncio
 import json
 from app.config import config, openai_api_key
 from app.logging_config import logger, truncate_message
-from app.prompts import REUNION_CONSULTATION_SYSTEM_PROMPT
-from app.schemas import REUNION_ANALYSIS_SCHEMA
+# from app.prompts import REUNION_CONSULTATION_SYSTEM_PROMPT # 삭제
+# from app.schemas import REUNION_ANALYSIS_SCHEMA # 삭제
+from app.database import prompt_db # DB 모듈 임포트
 
 
 class LLMService:
@@ -16,6 +17,31 @@ class LLMService:
         self.client = OpenAI(
             api_key=openai_api_key
         )
+        self.system_prompt: str = ""
+        self.analysis_schema: Dict[str, Any] = {}
+        self._load_prompts_from_db() # 생성자에서 프롬프트 로드
+
+    def _load_prompts_from_db(self):
+        """DB에서 활성화된 시스템 프롬프트와 JSON 스키마를 로드합니다."""
+        logger.info("Loading prompts and schemas from database...")
+        
+        system_prompt_content = prompt_db.get_active_prompt_by_name('REUNION_CONSULTATION_SYSTEM_PROMPT')
+        if not system_prompt_content:
+            logger.error("Fatal: Could not load active system prompt from DB.")
+            raise ValueError("Failed to load required system prompt from the database.")
+        self.system_prompt = system_prompt_content
+
+        analysis_schema_str = prompt_db.get_active_prompt_by_name('REUNION_ANALYSIS_SCHEMA')
+        if not analysis_schema_str:
+            logger.error("Fatal: Could not load active analysis schema from DB.")
+            raise ValueError("Failed to load required analysis schema from the database.")
+        
+        try:
+            self.analysis_schema = json.loads(analysis_schema_str)
+            logger.info("Successfully loaded and parsed all required prompts and schemas.")
+        except json.JSONDecodeError as e:
+            logger.error(f"Fatal: Failed to parse analysis schema from DB. Error: {e}")
+            raise ValueError("Invalid JSON format in the analysis schema from the database.")
 
     async def chat_completion(self, message: str, max_tokens: int = None, use_structured_output: bool = True) -> tuple[str, int]:
         """
@@ -42,7 +68,7 @@ class LLMService:
             api_params = {
                 "model": config.openai.model,
                 "messages": [
-                    {"role": "system", "content": REUNION_CONSULTATION_SYSTEM_PROMPT},
+                    {"role": "system", "content": self.system_prompt}, # DB에서 로드한 프롬프트 사용
                     {"role": "user", "content": message}
                 ],
                 "max_tokens": max_tokens,
@@ -55,7 +81,7 @@ class LLMService:
                     "type": "json_schema",
                     "json_schema": {
                         "name": "reunion_analysis",
-                        "schema": REUNION_ANALYSIS_SCHEMA,
+                        "schema": self.analysis_schema, # DB에서 로드한 스키마 사용
                         "strict": True
                     }
                 }
@@ -139,7 +165,7 @@ class LLMService:
             stream = self.client.chat.completions.create(
                 model=config.openai.model,
                 messages=[
-                    {"role": "system", "content": REUNION_CONSULTATION_SYSTEM_PROMPT},
+                    {"role": "system", "content": self.system_prompt}, # DB에서 로드한 프롬프트 사용
                     {"role": "user", "content": message}
                 ],
                 max_tokens=max_tokens,

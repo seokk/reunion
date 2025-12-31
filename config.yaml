@@ -29,3 +29,8 @@ logging:
   backup_count: 5
   log_request_body: true
   max_message_length: 500  # 로그에 기록할 메시지 최대 길이
+
+# Turso DB 설정
+turso:
+  db_url: "libsql://reuniondb-seokk.aws-ap-northeast-1.turso.io" 
+  auth_token: "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicnciLCJpYXQiOjE3NjcxNTAwODQsImlkIjoiYjU5MDg1YjYtMTcwNS00NmJiLWEwMjItNmRjZWI0ZGYyN2Y5IiwicmlkIjoiZjYxNTFhZmQtNjJkYi00OWFiLTg1OGYtMjIwOWZiMTQ3NjY3In0.rUgCKI6tnvcAQ3HWpn1YYzFNGRVtbZLszOoBqS8bcBPRSFEPGkT3-9ocn0JTd7IxkCZXsWrJOkAS1gt2AikCAQ"

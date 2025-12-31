@@ -1,10 +1,10 @@
 import os
 import yaml
-from typing import List, Dict, Any
+from typing import List
 from pydantic import BaseModel
 from dotenv import load_dotenv
 
-# .env 파일 로드
+# .env 파일 로드 (OPENAI_API_KEY 같은 다른 환경변수를 위해 유지)
 load_dotenv()
 
 
@@ -37,6 +37,10 @@ class LoggingConfig(BaseModel):
     log_request_body: bool
     max_message_length: int
 
+# Turso DB 설정을 위한 클래스 추가
+class TursoConfig(BaseModel):
+    db_url: str
+    auth_token: str
 
 class Config(BaseModel):
     api_keys: List[APIKeyConfig]
@@ -44,15 +48,18 @@ class Config(BaseModel):
     token_limits: TokenLimitsConfig
     openai: OpenAIConfig
     logging: LoggingConfig
+    # config.yaml에서 직접 turso 설정을 로드
+    turso: TursoConfig
 
 
 def load_config():
-    base_dir = os.path.dirname(os.path.abspath(__file__))  # /app/app
-    root_dir = os.path.abspath(os.path.join(base_dir, ".."))  # /app
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    root_dir = os.path.abspath(os.path.join(base_dir, ".."))
     config_path = os.path.join(root_dir, "config.yaml")
 
     with open(config_path, "r", encoding="utf-8") as f:
         config_dict = yaml.safe_load(f)
+    
     return Config(**config_dict)
 
 

@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Depends, Request, HTTPException, status
 from fastapi.responses import StreamingResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+from contextlib import asynccontextmanager
 from datetime import datetime
 import json
 import uvicorn
@@ -8,15 +9,29 @@ import os
 from app.models import ChatRequest, ChatResponse, ErrorResponse
 from app.auth import verify_api_key, get_api_key_name
 from app.rate_limiter import rate_limiter
-from app.llm_service import llm_service
+from app.llm_service import get_llm_service, LLMService
+from app.database import prompt_db # prompt_db 임포트
 from app.logging_config import logger, mask_api_key, truncate_message
 from app.config import config
 
-# FastAPI 애플리케이션 생성
+# --- Lifespan 이벤트 핸들러 ---
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """애플리케이션 시작/종료 시 이벤트 처리"""
+    logger.info("Application startup...")
+    # 시작: 데이터베이스 클라이언트 생성
+    prompt_db.create_client()
+    yield
+    # 종료: 데이터베이스 클라이언트 연결 종료
+    logger.info("Application shutdown...")
+    await prompt_db.close_client()
+
+# --- FastAPI 애플리케이션 생성 ---
 app = FastAPI(
     title="LLM Service API",
     description="FastAPI 기반 ChatGPT 서비스",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan # lifespan 핸들러 등록
 )
 
 # CORS 설정 추가
@@ -49,7 +64,8 @@ async def root():
 async def chat(
     request: Request,
     chat_request: ChatRequest,
-    api_key: str = Depends(verify_api_key)
+    api_key: str = Depends(verify_api_key),
+    llm_service: LLMService = Depends(get_llm_service)
 ):
     """
     일반 채팅 엔드포인트 (전체 응답 한 번에 반환)
@@ -140,7 +156,8 @@ async def chat(
 async def chat_stream(
     request: Request,
     chat_request: ChatRequest,
-    api_key: str = Depends(verify_api_key)
+    api_key: str = Depends(verify_api_key),
+    llm_service: LLMService = Depends(get_llm_service)
 ):
     """
     스트리밍 채팅 엔드포인트 (실시간 응답)
@@ -270,4 +287,4 @@ if __name__ == "__main__":
     host = os.getenv("HOST", "0.0.0.0")
 
     # Cloud Run과 같은 역방향 프록시 뒤에서 실행할 때 필요
-    uvicorn.run(app, host=host, port=port, proxy_headers=True)
+    uvicorn.run("main:app", host=host, port=port, proxy_headers=True, reload=True)

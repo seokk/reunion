@@ -44,7 +44,8 @@ def setup_logging():
     formatter_string = '%(asctime)s %(levelname)s %(message)s'
     json_formatter = jsonlogger.JsonFormatter(
         formatter_string,
-        rename_fields={'levelname': 'severity', 'asctime': 'timestamp'}
+        rename_fields={'levelname': 'severity', 'asctime': 'timestamp'},
+        json_ensure_ascii=False  # 한글 깨짐 방지 설정 추가
     )
 
     console_handler.setFormatter(json_formatter)

@@ -4,6 +4,7 @@ from typing import AsyncGenerator, Dict, Any
 import asyncio
 import json
 import re
+import ast # ast 모듈 임포트
 from app.config import config, openai_api_key
 from app.logging_config import logger, truncate_message
 from app.database import prompt_db
@@ -18,7 +19,7 @@ class LLMService:
 
     async def _load_prompts_from_db(self):
         """
-        DB에서 프롬프트를 로드하고, 주석과 후행 쉼표가 포함된 JSONC 형식을 처리합니다.
+        DB에서 프롬프트를 로드하고, 주석이 포함된 파이썬 딕셔너리 문자열을 파싱합니다.
         """
         logger.info("Attempting to load prompts and schemas from database asynchronously...")
 
@@ -34,30 +35,28 @@ class LLMService:
             logger.error(f"Exception while loading system prompt: {e}", exc_info=True)
             raise
 
-        # 2. 분석 스키마 로드 및 파싱
+        # 2. 분석 스키마 로드 및 파싱 (Python Literal 파싱)
         cleaned_schema_str = ""
         try:
             analysis_schema_str = await prompt_db.get_active_prompt_by_name('REUNION_ANALYSIS_SCHEMA')
             if not analysis_schema_str:
                 logger.error("Fatal: Could not load active analysis schema from DB.")
-                raise ValueError("Failed to lㅎoad required analysis schema from the database.")
+                raise ValueError("Failed to load required analysis schema from the database.")
 
-            logger.info("Successfully fetched analysis schema string. Cleaning and parsing...")
+            logger.info("Successfully fetched analysis schema string. Cleaning and parsing as Python literal...")
 
             # 1단계: '#'으로 시작하는 주석 라인 제거
-            cleaned_schema_str = re.sub(r"^\s*#.*$", "", analysis_schema_str, flags=re.MULTILINE)
+            cleaned_schema_str = re.sub(r"#.*$", "", analysis_schema_str, flags=re.MULTILINE)
 
-            # 2단계: 닫히는 중괄호/대괄호 앞의 후행 쉼표(trailing comma) 제거
-            cleaned_schema_str = re.sub(r",(\s*[}\]])", r"\1", cleaned_schema_str)
+            # 2단계: 정제된 문자열을 Python 코드로 파싱 (ast.literal_eval 사용)
+            # 이 함수는 'False'와 후행 쉼표를 안전하게 처리합니다.
+            self.analysis_schema = ast.literal_eval(cleaned_schema_str)
+            logger.info("Successfully loaded and parsed analysis schema using ast.literal_eval.")
 
-            # 3단계: 정제된 문자열을 JSON으로 파싱
-            self.analysis_schema = json.loads(cleaned_schema_str)
-            logger.info("Successfully loaded and parsed analysis schema.")
-
-        except json.JSONDecodeError as e:
-            logger.error(f"Fatal: Failed to parse analysis schema as JSON. Error: {e}")
+        except (ValueError, SyntaxError, MemoryError) as e:
+            logger.error(f"Fatal: Failed to parse analysis schema as a Python literal. Error: {e}")
             logger.error(f"--- Schema string that failed parsing ---\n{cleaned_schema_str}")
-            raise ValueError(f"Invalid JSON format in the analysis schema. Check for syntax errors like trailing commas. Parsing error: {e}")
+            raise ValueError(f"Invalid Python literal format in the analysis schema. Error: {e}")
         except Exception as e:
             logger.error(f"Fatal: An unexpected error occurred while loading analysis schema: {e}", exc_info=True)
             raise

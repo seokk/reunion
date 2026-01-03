@@ -3,7 +3,7 @@ from fastapi import HTTPException, status
 from typing import AsyncGenerator, Dict, Any
 import asyncio
 import json
-import re # 정규표현식 모듈 추가
+import re
 from app.config import config, openai_api_key
 from app.logging_config import logger, truncate_message
 from app.database import prompt_db
@@ -17,39 +17,50 @@ class LLMService:
         self.analysis_schema: Dict[str, Any] = {}
 
     async def _load_prompts_from_db(self):
-        """DB에서 활성화된 시스템 프롬프트와 JSON 스키마를 비동기적으로 로드합니다."""
+        """
+        DB에서 프롬프트를 로드하고, 주석과 후행 쉼표가 포함된 JSONC 형식을 처리합니다.
+        """
         logger.info("Attempting to load prompts and schemas from database asynchronously...")
-        
-        system_prompt_content = await prompt_db.get_active_prompt_by_name('REUNION_CONSULTATION_SYSTEM_PROMPT')
-        if not system_prompt_content:
-            logger.error("Fatal: Could not load active system prompt from DB.")
-            raise ValueError("Failed to load required system prompt from the database.")
-        self.system_prompt = system_prompt_content
 
-        analysis_schema_str = await prompt_db.get_active_prompt_by_name('REUNION_ANALYSIS_SCHEMA')
-        if not analysis_schema_str:
-            logger.warning(">>> 조회 실패: 활성화된 프롬프트를 찾을 수 없습니다.")
-            raise ValueError(">>> 조회 실패: 활성화된 프롬프트를 찾을 수 없습니다.")
-        
-        logger.info(">>> 조회 성공: 프롬프트 내용을 성공적으로 가져왔습니다.")
-        
-        cleaned_schema_str = re.sub(r"^\s*#.*$", "", analysis_schema_str, flags=re.MULTILINE)
-            
-                # 4. 주석이 제거된 문자열을 JSON으로 파싱합니다.
+        # 1. 시스템 프롬프트 로드
         try:
-            analysis_schema = json.loads(cleaned_schema_str)
-            logger.info(">>> 파싱 성공: 스키마가 올바른 JSON 형식입니다.")
-            # 파싱된 객체의 일부를 로깅하여 확인
-            logger.info(f"파싱된 스키마 타입: {type(analysis_schema)}")
-            if isinstance(analysis_schema, dict):
-                logger.info(f"스키마 최상위 키: {list(analysis_schema.keys())}")
+            system_prompt_content = await prompt_db.get_active_prompt_by_name('REUNION_CONSULTATION_SYSTEM_PROMPT')
+            if not system_prompt_content:
+                logger.error("Fatal: Could not load active system prompt from DB.")
+                raise ValueError("Failed to load required system prompt from the database.")
+            self.system_prompt = system_prompt_content
+            logger.info("Successfully loaded system prompt.")
+        except Exception as e:
+            logger.error(f"Exception while loading system prompt: {e}", exc_info=True)
+            raise
+
+        # 2. 분석 스키마 로드 및 파싱
+        cleaned_schema_str = ""
+        try:
+            analysis_schema_str = await prompt_db.get_active_prompt_by_name('REUNION_ANALYSIS_SCHEMA')
+            if not analysis_schema_str:
+                logger.error("Fatal: Could not load active analysis schema from DB.")
+                raise ValueError("Failed to lㅎoad required analysis schema from the database.")
+
+            logger.info("Successfully fetched analysis schema string. Cleaning and parsing...")
+
+            # 1단계: '#'으로 시작하는 주석 라인 제거
+            cleaned_schema_str = re.sub(r"^\s*#.*$", "", analysis_schema_str, flags=re.MULTILINE)
+
+            # 2단계: 닫히는 중괄호/대괄호 앞의 후행 쉼표(trailing comma) 제거
+            cleaned_schema_str = re.sub(r",(\s*[}\]])", r"\1", cleaned_schema_str)
+
+            # 3단계: 정제된 문자열을 JSON으로 파싱
+            self.analysis_schema = json.loads(cleaned_schema_str)
+            logger.info("Successfully loaded and parsed analysis schema.")
 
         except json.JSONDecodeError as e:
-            logger.error(f">>> 파싱 실패: JSON 형식이 올바르지 않습니다. Error: {e}")
-            logger.error("데이터베이스에 저장된 값이 유효한 JSON인지, 주석이 올바르게 제거되었는지 확인하세요.")
-            # 실패한 문자열을 다시 로깅
-            logger.error(f"파싱 실패한 문자열:\n{cleaned_schema_str}")
-
+            logger.error(f"Fatal: Failed to parse analysis schema as JSON. Error: {e}")
+            logger.error(f"--- Schema string that failed parsing ---\n{cleaned_schema_str}")
+            raise ValueError(f"Invalid JSON format in the analysis schema. Check for syntax errors like trailing commas. Parsing error: {e}")
+        except Exception as e:
+            logger.error(f"Fatal: An unexpected error occurred while loading analysis schema: {e}", exc_info=True)
+            raise
 
     async def chat_completion(self, message: str, max_tokens: int = None, use_structured_output: bool = True) -> tuple[str, int]:
         """

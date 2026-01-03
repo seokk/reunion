@@ -28,22 +28,28 @@ class LLMService:
 
         analysis_schema_str = await prompt_db.get_active_prompt_by_name('REUNION_ANALYSIS_SCHEMA')
         if not analysis_schema_str:
-            logger.error("Fatal: Could not load active analysis schema from DB.")
-            raise ValueError("Failed to load required analysis schema from the database.")
+            logger.warning(">>> 조회 실패: 활성화된 프롬프트를 찾을 수 없습니다.")
+            raise ValueError(">>> 조회 실패: 활성화된 프롬프트를 찾을 수 없습니다.")
         
-        try:
-            # 1. DB에서 읽어온 문자열에서 주석을 제거합니다.
-            # 각 줄의 시작 부분에 있는 # 주석을 제거합니다.
-            cleaned_schema_str = re.sub(r"^\s*#.*$", "", analysis_schema_str, flags=re.MULTILINE)
+        logger.info(">>> 조회 성공: 프롬프트 내용을 성공적으로 가져왔습니다.")
+        
+        cleaned_schema_str = re.sub(r"^\s*#.*$", "", analysis_schema_str, flags=re.MULTILINE)
             
-            # 2. 주석이 제거된 문자열을 JSON으로 파싱합니다.
-            self.analysis_schema = json.loads(cleaned_schema_str)
-            logger.info("Successfully loaded and parsed all required prompts and schemas.")
+                # 4. 주석이 제거된 문자열을 JSON으로 파싱합니다.
+        try:
+            analysis_schema = json.loads(cleaned_schema_str)
+            logger.info(">>> 파싱 성공: 스키마가 올바른 JSON 형식입니다.")
+            # 파싱된 객체의 일부를 로깅하여 확인
+            logger.info(f"파싱된 스키마 타입: {type(analysis_schema)}")
+            if isinstance(analysis_schema, dict):
+                logger.info(f"스키마 최상위 키: {list(analysis_schema.keys())}")
 
         except json.JSONDecodeError as e:
-            logger.error(f"Fatal: Failed to parse analysis schema from DB. Error: {e}")
-            logger.debug(f"Cleaned schema string that failed to parse: {cleaned_schema_str}")
-            raise ValueError("Invalid JSON format in the analysis schema from the database.")
+            logger.error(f">>> 파싱 실패: JSON 형식이 올바르지 않습니다. Error: {e}")
+            logger.error("데이터베이스에 저장된 값이 유효한 JSON인지, 주석이 올바르게 제거되었는지 확인하세요.")
+            # 실패한 문자열을 다시 로깅
+            logger.error(f"파싱 실패한 문자열:\n{cleaned_schema_str}")
+
 
     async def chat_completion(self, message: str, max_tokens: int = None, use_structured_output: bool = True) -> tuple[str, int]:
         """

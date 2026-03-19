@@ -29,9 +29,9 @@ async def test_prompt_retrieval():
         cleaned_schema_str = re.sub(r"^\s*#.*$", "", content, flags=re.MULTILINE)
         
         # 디버깅을 위해 주석 제거 후의 문자열을 출력합니다.
-        logger.info("--- 주석 제거 후 스키마 내용 ---")
-        logger.info(cleaned_schema_str)
-        logger.info("---------------------------------")
+        # logger.info("--- 주석 제거 후 스키마 내용 ---")
+        # logger.info(cleaned_schema_str)
+        # logger.info("---------------------------------")
 
         # 4. 주석이 제거된 문자열을 JSON으로 파싱합니다.
         try:

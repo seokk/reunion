@@ -195,16 +195,22 @@ class LLMService:
 
 _llm_service_instance = None
 _llm_service_lock = asyncio.Lock()
+_last_loaded_at: float = 0.0
+PROMPT_CACHE_TTL = 300  # 5분 (초 단위)
 
 async def get_llm_service() -> LLMService:
     """
     FastAPI 의존성 주입을 통해 LLMService의 싱글턴 인스턴스를 관리합니다.
-    필요한 경우, 비동기적으로 프롬프트를 로드하여 인스턴스를 초기화합니다.
+    최초 로드 후 PROMPT_CACHE_TTL(5분)마다 DB에서 프롬프트를 갱신합니다.
     """
-    global _llm_service_instance
-    if _llm_service_instance is None:
+    global _llm_service_instance, _last_loaded_at
+    now = asyncio.get_event_loop().time()
+    if _llm_service_instance is None or (now - _last_loaded_at) > PROMPT_CACHE_TTL:
         async with _llm_service_lock:
-            if _llm_service_instance is None:
-                _llm_service_instance = LLMService()
-                await _llm_service_instance._load_prompts_from_db()
+            if _llm_service_instance is None or (now - _last_loaded_at) > PROMPT_CACHE_TTL:
+                service = LLMService()
+                await service._load_prompts_from_db()
+                _llm_service_instance = service
+                _last_loaded_at = now
+                logger.info(f"Prompts reloaded from DB. Next refresh in {PROMPT_CACHE_TTL}s.")
     return _llm_service_instance

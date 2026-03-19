@@ -68,7 +68,7 @@ class PromptDB:
 
             if result.rows:
                 content = result.rows[0]["content"]
-                logger.info(f"Successfully loaded active prompt for '{name}'.")
+                logger.info(f"Successfully loaded active prompt for '{name}':\n{content}")
                 return content
             else:
                 logger.warning(f"No active prompt found for name: {name}")
